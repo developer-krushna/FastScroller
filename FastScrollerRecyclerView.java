@@ -14,6 +14,14 @@ import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+/*
+ Author : @developer-krushna (Krushna Chandra)
+ Idea Extracted From MT Manager
+ 
+ A perfect optimized RecyclerView Fast Scroller for Android
+
+*/
+
 public class FastScrollerRecyclerView extends RecyclerView {
 
     private float thumbWidth;
