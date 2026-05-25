@@ -1,5 +1,6 @@
-package com.fastrecyclerview;
+package modder.hub.dexeditor.views;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -17,27 +18,32 @@ import androidx.recyclerview.widget.RecyclerView;
 /*
  Author : @developer-krushna (Krushna Chandra)
  Idea Extracted From MT Manager
- 
+
  A perfect optimized RecyclerView Fast Scroller for Android
 
 */
 
 public class FastScrollerRecyclerView extends RecyclerView {
 
-    private float thumbWidth;
-    private int thumbColor;
-    private boolean isScrollerEnabled = true;
-    private Paint scrollerPaint;
+    private final float thumbWidth;
+    private final int thumbColor;
+    private final boolean isScrollerEnabled = true;
+    private final Paint scrollerPaint;
+    private final RectF thumbRect;
+    private final float thumbHeight;
+    private final Runnable hideScrollerRunnable = new Runnable() {
+        @Override
+        public void run() {
+            invalidate();
+        }
+    };
     private boolean isDragging = false;
-    private boolean isManualVisibilityForced = false;
-    private int lastScrollPosition = -1;
+    private int lastScrollPosition;
     private boolean isScrollerCurrentlyVisible = false;
-    private int lastChildCount = 0;
-    private RectF thumbRect;
-    private float thumbHeight;
     private long lastInteractionTime = 0L;
     private float touchOffset;
     private boolean isDefaultScrollBarEnabled = true;
+    private boolean isTrackVisible = true;
 
     public FastScrollerRecyclerView(@NonNull Context context) {
         this(context, null);
@@ -49,10 +55,10 @@ public class FastScrollerRecyclerView extends RecyclerView {
 
     public FastScrollerRecyclerView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        
+
         this.thumbRect = new RectF();
         this.scrollerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        
+
         float density = context.getResources().getDisplayMetrics().density;
         this.thumbColor = 0xDD666666; // Standard grey
         this.thumbWidth = 8.0f * density;
@@ -68,13 +74,15 @@ public class FastScrollerRecyclerView extends RecyclerView {
                 // Update interaction time so scroller shows up when swiping
                 if (!isDragging) {
                     lastInteractionTime = SystemClock.uptimeMillis();
+                    removeCallbacks(hideScrollerRunnable);
+                    postDelayed(hideScrollerRunnable, 1500);
                 }
-                invalidate(); 
+                invalidate();
             }
         });
 
         super.setLayoutManager(new LinearLayoutManager(context));
-        
+
         ItemAnimator animator = getItemAnimator();
         if (animator != null) {
             animator.setAddDuration(100L);
@@ -82,11 +90,20 @@ public class FastScrollerRecyclerView extends RecyclerView {
             animator.setMoveDuration(200L);
             animator.setChangeDuration(100L);
         }
+        lastScrollPosition = -1;
+    }
+
+    /**
+     * Set whether the scroll track should be visible behind the thumb.
+     */
+    public void setTrackVisible(boolean visible) {
+        this.isTrackVisible = visible;
+        invalidate();
     }
 
     @Override
-    public void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
+    protected void dispatchDraw(@NonNull Canvas canvas) {
+        super.dispatchDraw(canvas);
 
         if (!isScrollerEnabled || getAdapter() == null) return;
 
@@ -113,13 +130,18 @@ public class FastScrollerRecyclerView extends RecyclerView {
             return;
         }
 
-        // Fading Logic
+        // Fading and Sliding Logic
         float alphaMultiplier = 1.0f;
+        float slideOffset = 0.0f;
+
+        boolean isManualVisibilityForced = false;
         if (!isDragging && !isManualVisibilityForced) {
-            int timeSinceInteraction = (int) (SystemClock.uptimeMillis() - lastInteractionTime);
-            if (timeSinceInteraction > 1500) {
-                int fadeTime = timeSinceInteraction - 1500;
-                alphaMultiplier = fadeTime < 300 ? 1.0f - (fadeTime / 300.0f) : 0.0f;
+            long timeSinceInteraction = SystemClock.uptimeMillis() - lastInteractionTime;
+            if (timeSinceInteraction >= 1500) {
+                float fadeProgress = Math.min(1.0f, (timeSinceInteraction - 1500) / 300.0f);
+                alphaMultiplier = 1.0f - fadeProgress;
+                // Slide out to the right (MT Manager style)
+                slideOffset = thumbWidth * fadeProgress;
             }
         }
 
@@ -137,12 +159,18 @@ public class FastScrollerRecyclerView extends RecyclerView {
         int width = getWidth();
         int height = getHeight();
 
+        // Apply slide animation
+        canvas.save();
+        canvas.translate(slideOffset, 0);
+
         // 1. Draw Track
-        int trackColor = 0x11000000; // Very faint track
-        int trackAlpha = (int) (Color.alpha(trackColor) * alphaMultiplier);
-        scrollerPaint.setColor((trackAlpha << 24) | (trackColor & 0x00FFFFFF));
-        float trackLeft = width - (thumbWidth * alphaMultiplier);
-        canvas.drawRect(trackLeft, 0, width, height, scrollerPaint);
+        if (isTrackVisible) {
+            int trackColor = 0x11000000; // Very faint track
+            int trackAlpha = (int) (Color.alpha(trackColor) * alphaMultiplier);
+            scrollerPaint.setColor((trackAlpha << 24) | (trackColor & 0x00FFFFFF));
+            float trackLeft = width - thumbWidth;
+            canvas.drawRect(trackLeft, 0, width, height, scrollerPaint);
+        }
 
         // 2. Draw Thumb
         int activeColor = isDragging ? 0xFF1E88E5 : thumbColor; // Blue if dragging
@@ -151,13 +179,25 @@ public class FastScrollerRecyclerView extends RecyclerView {
 
         float thumbTop = ((float) offset / scrollableRange) * (height - thumbHeight);
         float thumbBottom = thumbTop + thumbHeight;
+        float thumbLeft = width - thumbWidth;
 
         // Update hit-rect for touch events
-        thumbRect.set(width - (thumbWidth * 2.0f), thumbTop, width, thumbBottom);
-        canvas.drawRect(trackLeft, thumbTop, width, thumbBottom, scrollerPaint);
+        // Nearby tapping to toggle the fast scroller
+        float density = getContext().getResources().getDisplayMetrics().density;
+        float touchWidth = 48.0f * density; // Generous 48dp touch target
+        float touchPaddingVertical = 12.0f * density; // Extra 12dp top/bottom sensitivity
+
+        thumbRect.set(width - touchWidth,
+                thumbTop - touchPaddingVertical,
+                width,
+                thumbBottom + touchPaddingVertical);
+
+        canvas.drawRect(thumbLeft, thumbTop, width, thumbBottom, scrollerPaint);
+
+        canvas.restore();
 
         // Continue animating if in fade-out state
-        if (alphaMultiplier < 1.0f && alphaMultiplier > 0.0f) {
+        if (alphaMultiplier < 1.0f) {
             postInvalidateOnAnimation();
         }
     }
@@ -167,6 +207,7 @@ public class FastScrollerRecyclerView extends RecyclerView {
         if (isScrollerEnabled && isScrollerCurrentlyVisible && ev.getAction() == MotionEvent.ACTION_DOWN) {
             if (thumbRect.contains(ev.getX(), ev.getY())) {
                 isDragging = true;
+                removeCallbacks(hideScrollerRunnable);
                 touchOffset = thumbRect.top - ev.getY();
                 return true;
             }
@@ -177,9 +218,9 @@ public class FastScrollerRecyclerView extends RecyclerView {
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
-        lastChildCount = 0;
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         if (isDragging) {
@@ -191,17 +232,24 @@ public class FastScrollerRecyclerView extends RecyclerView {
                 case MotionEvent.ACTION_MOVE:
                     float relativeY = (ev.getY() + touchOffset) / (getHeight() - thumbHeight);
                     relativeY = Math.max(0.0f, Math.min(1.0f, relativeY));
-                    
-                    int position = (int) ((getAdapter().getItemCount() - 1) * relativeY);
+
+                    int position = 0;
+                    if (getAdapter() != null) {
+                        position = (int) ((getAdapter().getItemCount() - 1) * relativeY);
+                    }
                     if (lastScrollPosition != position) {
                         lastScrollPosition = position;
-                        ((LinearLayoutManager)getLayoutManager()).scrollToPositionWithOffset(position, 0);
+                        if (getLayoutManager() != null) {
+                            ((LinearLayoutManager) getLayoutManager()).scrollToPositionWithOffset(position, 0);
+                        }
                     }
                     return true;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
                     isDragging = false;
                     lastInteractionTime = SystemClock.uptimeMillis();
+                    removeCallbacks(hideScrollerRunnable);
+                    postDelayed(hideScrollerRunnable, 1500);
                     invalidate();
                     return true;
             }
