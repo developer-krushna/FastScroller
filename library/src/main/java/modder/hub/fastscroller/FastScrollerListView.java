@@ -23,7 +23,7 @@ import java.lang.ref.WeakReference;
 /*
  Author : @developer-krushna (Krushna Chandra)
  Idea Extracted From MT Manager
- 
+
  A perfect optimized ListView Fast Scroller
 
 */
@@ -51,7 +51,7 @@ public class FastScrollerListView extends ListView {
     private int lastKnownChildCount = 0;
     private AbsListView.OnScrollListener externalScrollListener;
 
-	private boolean transparentTrackBackground = false; 
+    private boolean transparentTrackBackground = false;
 
     public FastScrollerListView(Context context) {
         this(context, null);
@@ -81,7 +81,7 @@ public class FastScrollerListView extends ListView {
         }
 
         float density = context.getResources().getDisplayMetrics().density;
-        this.thumbColor = 0xDD777777; 
+        this.thumbColor = 0xDD777777;
         this.trackColor = 0x39777777;
         this.thumbWidth = 8.0f * density;
         this.thumbHeight = 48.0f * density;
@@ -126,11 +126,11 @@ public class FastScrollerListView extends ListView {
 
         // Draw Track
         int trackAlpha = (int) (Color.alpha(trackColor) * alphaMultiplier);
-		if (!transparentTrackBackground) {
-			paint.setColor((trackAlpha << 24) | (trackColor & 0x00FFFFFF));
-		} else {
-			paint.setColor(Color.TRANSPARENT);
-		}
+        if (!transparentTrackBackground) {
+            paint.setColor((trackAlpha << 24) | (trackColor & 0x00FFFFFF));
+        } else {
+            paint.setColor(Color.TRANSPARENT);
+        }
         float trackLeft = width - (thumbWidth * alphaMultiplier);
         canvas.drawRect(trackLeft, 0, width, height, paint);
 
@@ -161,7 +161,7 @@ public class FastScrollerListView extends ListView {
         // Only intercept if we are touching the thumb area
         if (isFastScrollEnabled && isScrollbarVisible && ev.getAction() == MotionEvent.ACTION_DOWN) {
             if (thumbRect.contains(ev.getX(), ev.getY())) {
-                return true; 
+                return true;
             }
         }
         return super.onInterceptTouchEvent(ev);
@@ -222,10 +222,10 @@ public class FastScrollerListView extends ListView {
         this.isFastScrollEnabled = enabled;
         invalidate();
     }
-	
-	public void setTransparentTrackBackground(boolean bg){
-		this.transparentTrackBackground = bg;
-	}
+
+    public void setTransparentTrackBackground(boolean bg){
+        this.transparentTrackBackground = bg;
+    }
 
     @Override
     public boolean isFastScrollEnabled() {
@@ -246,9 +246,9 @@ public class FastScrollerListView extends ListView {
         int highlightColor = value.data & 0x40ffffff;
 
         TransitionDrawable transition = new TransitionDrawable(new Drawable[]{
-																   new ColorDrawable(baseColor),
-																   new ColorDrawable(highlightColor)
-															   });
+                new ColorDrawable(baseColor),
+                new ColorDrawable(highlightColor)
+        });
 
         // Add states (Simplified)
         int[] pressed = {android.R.attr.state_pressed};
