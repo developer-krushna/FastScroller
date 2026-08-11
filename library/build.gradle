@@ -3,7 +3,7 @@ plugins {
     id 'maven-publish'
 }
 
-group = 'com.github.FlutterGenerator'
+group = 'com.github.developer-krushna'
 
 android {
     namespace 'modder.hub'
@@ -44,7 +44,7 @@ afterEvaluate {
     publishing {
         publications {
             release(MavenPublication) {
-                groupId = 'com.github.FlutterGenerator'
+                groupId = 'com.github.developer-krushna'
                 artifactId = 'FastScroller'
                 version = 'v0.0.1'
 
