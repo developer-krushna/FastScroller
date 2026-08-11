@@ -1,0 +1,8 @@
+jdk:
+  - openjdk17
+
+build:
+  gradle:
+    build-file: library/build.gradle
+    tasks:
+      - publishToMavenLocal
