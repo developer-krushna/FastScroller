@@ -1,5 +1,6 @@
 package modder.hub.build;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
@@ -14,6 +15,7 @@ public class MainActivity extends Activity {
     private FastScrollerListView listView;
     private FastScrollerRecyclerView recyclerView;
 
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
