@@ -3,4 +3,4 @@ An android smart fast scroller similar to MT Manager available for both Recycler
 
 ![](img.jpg)
 
-[![](https://jitpack.io/v/FlutterGenerator/FastScroller.svg)](https://jitpack.io/#FlutterGenerator/FastScroller)
+[![](https://jitpack.io/v/developer-krushna/FastScroller.svg)](https://jitpack.io/#developer-krushna/FastScroller)
